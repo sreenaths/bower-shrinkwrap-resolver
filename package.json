@@ -1,7 +1,7 @@
 {
   "name": "bower-shrinkwrap-resolver",
   "description": "Missing shrinkwrap for Bower",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "author": "Stanley Shyiko <stanley.shyiko@gmail.com>",
   "license": "MIT",
   "repository": {
