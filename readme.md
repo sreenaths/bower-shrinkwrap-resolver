@@ -18,12 +18,13 @@ That's it.
 
 ## Usage
 
-`bower install` (with parameters or not) will automatically generate `bower-shrinkwrap.json`. You don't need 
- to do anything special. When bower detects that some of the versions are locked - it will use that instead
- of issuing network request(s). 
- 
-If you wish bower to ignore shrinkwrap file - pass `--no-shrinkwrap` command 
- line parameter (e.g. `bower i --no-shrinkwrap`)
+`bower install` (with or without parameters) will automatically generate (and update) `bower-shrinkwrap.json`.  
+
+**CLI**
+* `--no-shrinkwrap` - ignore an available shrinkwrap file.
+* `--strict-shrinkwrap` - fail if bower tries to install dependency that is missing in `bower-shrinkwrap.json`.
+* `--force-shrinkwrap` - regenerate `bower-shrinkwrap.json` 
+(e.g. `bower i --force-shrinkwrap` is equivalent to `rm bower-shrinkwrap.json && bower i`).
 
 ## License
 
