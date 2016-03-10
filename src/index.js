@@ -66,6 +66,7 @@ module.exports = function resolver(bower) {
       var sw = shrinkwrap[source];
       log('INFO: Resolving ' + source + (sw ? ' (shrinkwrap)' : ' (remote)'));
       if (sw && !endpointProvided) {
+        // skipping normal refs resolution in favour of shrinkwrap entry
         return Object.keys(sw).map(function (key) {
           rc[sw[key]] = key;
           return key === 'master' ? {target: 'master', version: '0.0.0'}
@@ -77,6 +78,16 @@ module.exports = function resolver(bower) {
       }
       return GitRemoteResolver.refs(source).then(function (refs) {
         var r = [];
+        // going to lock all tags because bower does not fetch
+        // leaf nodes overridden by "resolutions"
+
+        // test case: `"dependencies": {"a": "0.1.0", "b": "0.2.0"},
+        // "resolutions": {"b": "0.2.0", "c": "0.2.0"}`
+        // given a(0.1.0)->b(0.1.0)->c(0.1.0), b(0.2.0)->c(0.2.0)
+        // credits go to @guanig
+
+        var lock = updatedShrinkwrap[source] ||
+          (updatedShrinkwrap[source] = {});
         refs.forEach(function (line) {
           var match = line.match(/^([a-f0-9]{40})\s+refs\/tags\/v?(\S+)/);
           if (match && !match[2].endsWith('^{}')) {
@@ -85,9 +96,11 @@ module.exports = function resolver(bower) {
             }
             rc[match[1]] = match[2];
             r.push({target: match[1], version: match[2]});
+            lock[match[2]] = match[1];
           }
         });
         if (!r.length) {
+          // used in case of wildcard range for repos with no tags
           r.push({target: 'master', version: '0.0.0'});
         }
         return r;
@@ -111,8 +124,9 @@ module.exports = function resolver(bower) {
           endpoint.target = sw[endpoint.target];
         }
       }
-      log('INFO: Fetching ' + endpoint.source + '#' + endpoint.target);
       if (rc && rc[endpoint.target]) {
+        log('INFO: Fetching ' + endpoint.source + '#' + endpoint.target +
+          ' (' + rc[endpoint.target] + ')');
         lock[rc[endpoint.target]] = endpoint.target;
         return _();
       } else {
@@ -120,6 +134,9 @@ module.exports = function resolver(bower) {
           throw new Error(endpoint.source +
             ' is missing shrinkwrap entry for ' + endpoint.target);
         }
+        // at this point endpoint.target can point to either a branch or a
+        // commit hash (and so we'll try to resolve branch name & update
+        // the lock)
         return GitRemoteResolver.refs(endpoint.source)
           .then(function (refs) {
             var r = {};
@@ -134,11 +151,12 @@ module.exports = function resolver(bower) {
           .then(function (branches) {
             var target = branches[endpoint.target];
             if (target) {
-              log('INFO: Branch ' + endpoint.target + ' resolved to ' + target +
-                ' ' + endpoint.source);
+              log('INFO: Fetching ' + endpoint.source + '#' + endpoint.target +
+                ' (' + target + ')');
               lock[endpoint.target] = target;
               endpoint.target = target;
             } else {
+              log('INFO: Fetching ' + endpoint.source + '#' + endpoint.target);
               lock[endpoint.target] = endpoint.target;
             }
           })
