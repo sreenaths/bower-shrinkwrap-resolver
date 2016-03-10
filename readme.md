@@ -4,6 +4,8 @@ Missing shrinkwrap for Bower.
 
 ## Integration
 
+> Bower must be >= **1.5** (tested on Bower 1.7.7).
+
 1. (within project directory) `npm install bower-shrinkwrap-resolver --save-dev`
 2. Add `bower-shrinkwrap-resolver` [resolver](http://bower.io/docs/pluggable-resolvers) to `.bowerrc`, like so:
 ```json 
