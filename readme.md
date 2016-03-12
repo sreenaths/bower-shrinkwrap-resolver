@@ -18,6 +18,9 @@ Missing shrinkwrap for Bower.
 
 That's it.
 
+> If `bower` is installed globally - `bower-shrinkwrap-resolver` have to `npm i -g ...` too.
+  Otherwise you'll get `Cannot find module 'bower-shrinkwrap-resolver'`. 
+
 ## Usage
 
 `bower install` (with or without parameters) will automatically generate (and update) `bower-shrinkwrap.json`.  
@@ -25,8 +28,10 @@ That's it.
 **CLI**
 * `--no-shrinkwrap` - ignore an available shrinkwrap file.
 * `--strict-shrinkwrap` - fail if bower tries to install dependency that is missing in `bower-shrinkwrap.json`.
-* `--force-shrinkwrap` - regenerate `bower-shrinkwrap.json` 
-(e.g. `bower i --force-shrinkwrap` is equivalent to `rm bower-shrinkwrap.json && bower i`).
+* `--reset-shrinkwrap` - regenerate `bower-shrinkwrap.json` 
+(e.g. `bower i --reset-shrinkwrap` is equivalent to `rm bower-shrinkwrap.json && bower i`).
+
+> Debug logging can be turned with `NODE_DEBUG=bower-shrinkwrap-resolver bower ...`.
 
 ## License
 
