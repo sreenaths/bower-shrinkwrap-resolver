@@ -24,7 +24,6 @@ var endpointProvided = ['install', 'i', 'uninstall', 'rm', 'unlink', 'update']
     }
   });
 
-var bowerFile = path.join(process.cwd(), 'bower.json');
 var shrinkwrapFile = path.join(process.cwd(), 'bower-shrinkwrap.json');
 
 var shrinkwrap = {};
@@ -54,8 +53,8 @@ process.on('exit', function (status) {
 });
 
 function logRelease(source) {
-  log('INFO: Resolving ' + source + (shrinkwrap[source] ?
-      ' (shrinkwrap)' : ' (remote)'));
+  log('INFO: Resolving ' + source + (shrinkwrap[source]
+      ? ' (shrinkwrap)' : ' (remote)'));
 }
 
 function logFetch(endpoint, qualifier) {
