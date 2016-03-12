@@ -12,7 +12,7 @@ var log = util.debuglog('bower-shrinkwrap-resolver');
 
 var argv = process.argv;
 
-var forceShrinkwrap = !!~argv.indexOf('--force-shrinkwrap');
+var resetShrinkwrap = !!~argv.indexOf('--reset-shrinkwrap');
 var noShrinkwrap = !!~argv.indexOf('--no-shrinkwrap');
 var strictShrinkwrap = !!~argv.indexOf('--strict-shrinkwrap');
 var endpointProvided = ['install', 'i', 'uninstall', 'rm', 'unlink', 'update']
@@ -24,14 +24,15 @@ var endpointProvided = ['install', 'i', 'uninstall', 'rm', 'unlink', 'update']
     }
   });
 
+var bowerFile = path.join(process.cwd(), 'bower.json');
 var shrinkwrapFile = path.join(process.cwd(), 'bower-shrinkwrap.json');
 
 var shrinkwrap = {};
-if (!noShrinkwrap && !forceShrinkwrap) {
+if (!noShrinkwrap && !resetShrinkwrap) {
   try {
     var shrinkwrapFileContent = fs.readFileSync(shrinkwrapFile, 'utf8');
   } catch (e) {
-    log('ERROR: ' + e.message);
+    log('WARN: ' + e.message);
   }
   if (shrinkwrapFileContent) {
     shrinkwrap = JSON.parse(shrinkwrapFileContent);
@@ -52,6 +53,16 @@ process.on('exit', function (status) {
   }
 });
 
+function logRelease(source) {
+  log('INFO: Resolving ' + source + (shrinkwrap[source] ?
+      ' (shrinkwrap)' : ' (remote)'));
+}
+
+function logFetch(endpoint, qualifier) {
+  log('INFO: Fetching ' + endpoint.source + '#' + endpoint.target +
+    (qualifier ? ' (' + qualifier + ')' : ''));
+}
+
 module.exports = function resolver(bower) {
   return {
     match: function (source) {
@@ -62,13 +73,13 @@ module.exports = function resolver(bower) {
      * semver range.
      */
     releases: function (source) {
-      var rc = releaseCache[source] || (releaseCache[source] = {});
+      var rc = releaseCache[source] = {};
       var sw = shrinkwrap[source];
-      log('INFO: Resolving ' + source + (sw ? ' (shrinkwrap)' : ' (remote)'));
+      logRelease(source);
       if (sw && !endpointProvided) {
         // skipping normal refs resolution in favour of shrinkwrap entry
         return Object.keys(sw).map(function (key) {
-          rc[sw[key]] = key;
+          (rc[sw[key]] || (rc[sw[key]] = [])).push(key);
           return key === 'master' ? {target: 'master', version: '0.0.0'}
             : {target: sw[key], version: key};
         });
@@ -86,17 +97,20 @@ module.exports = function resolver(bower) {
         // given a(0.1.0)->b(0.1.0)->c(0.1.0), b(0.2.0)->c(0.2.0)
         // credits go to @guanig
 
-        var lock = updatedShrinkwrap[source] ||
-          (updatedShrinkwrap[source] = {});
         refs.forEach(function (line) {
           var match = line.match(/^([a-f0-9]{40})\s+refs\/tags\/v?(\S+)/);
           if (match && !match[2].endsWith('^{}')) {
-            if (match[2].split('.').length === 2) {
-              match[2] += '.0'; // fixme: breaks on 0.0-0...
+            var tag = match[2];
+            if (tag.split('.').length === 2) {
+              tag += '.0'; // fixme: breaks on 0.0-0...
             }
-            rc[match[1]] = match[2];
-            r.push({target: match[1], version: match[2]});
-            lock[match[2]] = match[1];
+
+            // rc is inverted to get correct shrinkwrap even if multiple tags
+            // reference the same commit (yep, peaple actaully do this)
+
+            var hash = match[1];
+            (rc[hash] || (rc[hash] = [])).push(tag);
+            r.push({target: hash, version: tag});
           }
         });
         if (!r.length) {
@@ -115,19 +129,25 @@ module.exports = function resolver(bower) {
       });
       var lock = updatedShrinkwrap[endpoint.source] ||
         (updatedShrinkwrap[endpoint.source] = {});
-      var rc = releaseCache[endpoint.source]; // key - sha1, value - tag/branch
+      // (sha1, tag/branch)
+      // can be undefined if depedency was specified using url#tag/branch syntax
+      var rc = releaseCache[endpoint.source];
       var sw = shrinkwrap[endpoint.source];
       if (sw && !endpointProvided) {
-        if (sw[endpoint.target]) {
+        var hash = sw[endpoint.target];
+        if (hash) {
           rc = {};
-          rc[sw[endpoint.target]] = endpoint.target;
+          var v = rc[hash] = [];
+          Object.keys(sw)
+            .forEach(function (k) { sw[k] === hash && v.push(k); });
           endpoint.target = sw[endpoint.target];
         }
       }
       if (rc && rc[endpoint.target]) {
-        log('INFO: Fetching ' + endpoint.source + '#' + endpoint.target +
-          ' (' + rc[endpoint.target] + ')');
-        lock[rc[endpoint.target]] = endpoint.target;
+        logFetch(endpoint, rc[endpoint.target].join(','));
+        rc[endpoint.target].forEach(function (v) {
+          lock[v] = endpoint.target;
+        });
         return _();
       } else {
         if (strictShrinkwrap) {
@@ -141,7 +161,7 @@ module.exports = function resolver(bower) {
           .then(function (refs) {
             var r = {};
             refs.forEach(function (line) {
-              var match = line.match(/^([a-f0-9]{40})\s+refs\/heads\/(\S+)/);
+              var match = line.match(/^([a-f0-9]{40})\s+refs\/\w+\/(\S+)/);
               if (match) {
                 r[match[2]] = match[1];
               }
@@ -151,20 +171,19 @@ module.exports = function resolver(bower) {
           .then(function (branches) {
             var target = branches[endpoint.target];
             if (target) {
-              log('INFO: Fetching ' + endpoint.source + '#' + endpoint.target +
-                ' (' + target + ')');
               lock[endpoint.target] = target;
+              var originalTarget = endpoint.target;
               endpoint.target = target;
+              logFetch(endpoint, originalTarget);
             } else {
-              log('INFO: Fetching ' + endpoint.source + '#' + endpoint.target);
+              logFetch(endpoint);
               lock[endpoint.target] = endpoint.target;
             }
           })
           .then(_);
       }
-      // todo: latch onto the ongoing promise of "endpoint.target + '@' +
-      // endpoint.source" (if any)
       function _() {
+        // todo: switch tp PackageRepository
         return createInstance(endpoint, options, null)
           .then(function (resolver) {
             return resolver.resolve();
