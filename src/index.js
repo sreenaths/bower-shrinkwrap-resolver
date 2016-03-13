@@ -88,14 +88,6 @@ module.exports = function resolver(bower) {
       }
       return GitRemoteResolver.refs(source).then(function (refs) {
         var r = [];
-        // going to lock all tags because bower does not fetch
-        // leaf nodes overridden by "resolutions"
-
-        // test case: `"dependencies": {"a": "0.1.0", "b": "0.2.0"},
-        // "resolutions": {"b": "0.2.0", "c": "0.2.0"}`
-        // given a(0.1.0)->b(0.1.0)->c(0.1.0), b(0.2.0)->c(0.2.0)
-        // credits go to @guanig
-
         refs.forEach(function (line) {
           var match = line.match(/^([a-f0-9]{40})\s+refs\/tags\/v?(\S+)/);
           if (match && !match[2].endsWith('^{}')) {
