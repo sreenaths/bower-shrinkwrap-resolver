@@ -4,11 +4,11 @@ var stringify = require('json-stable-stringify');
 var assign = require('object-assign');
 var fs = require('fs');
 var path = require('path');
-var util = require('util');
+var debuglog = require('debuglog');
 
 require('string.prototype.endswith');
 
-var log = util.debuglog('bower-shrinkwrap-resolver');
+var log = debuglog('bower-shrinkwrap-resolver');
 
 var argv = process.argv;
 
