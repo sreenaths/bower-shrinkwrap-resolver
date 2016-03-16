@@ -86,7 +86,8 @@ module.exports = function resolver(bower) {
       if (strictShrinkwrap) {
         throw new Error(source + ' is missing shrinkwrap entry');
       }
-      return GitRemoteResolver.refs(source).then(function (refs) {
+      var src = source.indexOf('git+') ? source.slice(4) : source;
+      return GitRemoteResolver.refs(src).then(function (refs) {
         var r = [];
         refs.forEach(function (line) {
           var match = line.match(/^([a-f0-9]{40})\s+refs\/tags\/v?(\S+)/);
@@ -148,7 +149,9 @@ module.exports = function resolver(bower) {
         // at this point endpoint.target can point to either a branch or a
         // commit hash (and so we'll try to resolve branch name & update
         // the lock)
-        return GitRemoteResolver.refs(endpoint.source)
+        var src = endpoint.source.indexOf('git+') ? endpoint.source.slice(4)
+          : endpoint.source;
+        return GitRemoteResolver.refs(src)
           .then(function (refs) {
             var r = {};
             refs.forEach(function (line) {
