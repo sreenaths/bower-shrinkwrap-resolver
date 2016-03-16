@@ -86,7 +86,7 @@ module.exports = function resolver(bower) {
       if (strictShrinkwrap) {
         throw new Error(source + ' is missing shrinkwrap entry');
       }
-      var src = source.indexOf('git+') ? source.slice(4) : source;
+      var src = !source.indexOf('git+') ? source.slice(4) : source;
       return GitRemoteResolver.refs(src).then(function (refs) {
         var r = [];
         refs.forEach(function (line) {
@@ -98,7 +98,7 @@ module.exports = function resolver(bower) {
             }
 
             // rc is inverted to get correct shrinkwrap even if multiple tags
-            // reference the same commit (yep, peaple actaully do this)
+            // reference the same commit (yep, people actually do this)
 
             var hash = match[1];
             (rc[hash] || (rc[hash] = [])).push(tag);
@@ -158,7 +158,7 @@ module.exports = function resolver(bower) {
         // at this point endpoint.target can point to either a branch or a
         // commit hash (and so we'll try to resolve branch name & update
         // the lock)
-        var src = endpoint.source.indexOf('git+') ? endpoint.source.slice(4)
+        var src = !endpoint.source.indexOf('git+') ? endpoint.source.slice(4)
           : endpoint.source;
         return GitRemoteResolver.refs(src)
           .then(function (refs) {
