@@ -113,14 +113,23 @@ module.exports = function resolver(bower) {
       });
     },
     fetch: function (endpoint, cached) {
+      var lock = updatedShrinkwrap[endpoint.source] ||
+        (updatedShrinkwrap[endpoint.source] = {});
       if (cached && cached.version) {
-        return;
+        var lockedVersion = cached.version;
+        var lockedHash = cached.endpoint.target;
+        if (cached.resolution.commit) {
+          lockedVersion === '0.0.0' && (lockedVersion = cached.endpoint.target);
+          lockedHash = cached.resolution.commit;
+        }
+        if (lockedVersion !== '0.0.0' || lockedHash !== 'master') {
+          lock[lockedVersion] = lockedHash;
+          return;
+        }
       }
       var options = assign({}, bower, {
         config: assign({}, bower.config, {resolvers: []})
       });
-      var lock = updatedShrinkwrap[endpoint.source] ||
-        (updatedShrinkwrap[endpoint.source] = {});
       // (sha1, tag/branch)
       // can be undefined if depedency was specified using url#tag/branch syntax
       var rc = releaseCache[endpoint.source];
