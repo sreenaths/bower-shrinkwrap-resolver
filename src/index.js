@@ -31,12 +31,26 @@ if (!noShrinkwrap && !resetShrinkwrap) {
   try {
     var shrinkwrapFileContent = fs.readFileSync(shrinkwrapFile, 'utf8');
   } catch (e) {
+    resetShrinkwrap = true;
     log('WARN: ' + e.message);
   }
   if (shrinkwrapFileContent) {
     shrinkwrap = JSON.parse(shrinkwrapFileContent);
   }
 }
+
+if (!strictShrinkwrap) {
+  try {
+    var rc = JSON.parse(fs.readFileSync(path.join(process.cwd(), '.bowerrc'),
+      'utf8'))['bower-shrinkwrap-resolver'];
+    strictShrinkwrap = rc && rc['strict-shrinkwrap'];
+  } catch (e) {
+    log('WARN: ' + e.message);
+  }
+  strictShrinkwrap = strictShrinkwrap && !resetShrinkwrap && !endpointProvided;
+}
+
+log('INFO: strict mode is ' + (strictShrinkwrap ? 'ON' : 'OFF'));
 
 var updatedShrinkwrap = JSON.parse(JSON.stringify(shrinkwrap));
 
