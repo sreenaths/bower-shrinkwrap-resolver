@@ -91,10 +91,11 @@ module.exports = function resolver(bower) {
       logRelease(source);
       if (sw && !endpointProvided) {
         // skipping normal refs resolution in favour of shrinkwrap entry
-        return Object.keys(sw).map(function (key) {
-          (rc[sw[key]] || (rc[sw[key]] = [])).push(key);
-          return key === 'master' ? {target: 'master', version: '0.0.0'}
-            : {target: sw[key], version: key};
+        return Object.keys(sw).map(function (ver) {
+          rc[ver] = sw[ver];
+          return ver === 'master' ? {target: 'master', version: '0.0.0'}
+            // target: using ver instead of hash to get readbale bower output
+            : {target: ver, version: ver};
         });
       }
       if (strictShrinkwrap) {
@@ -106,17 +107,13 @@ module.exports = function resolver(bower) {
         refs.forEach(function (line) {
           var match = line.match(/^([a-f0-9]{40})\s+refs\/tags\/v?(\S+)/);
           if (match && !match[2].endsWith('^{}')) {
-            var tag = match[2];
-            if (tag.split('.').length === 2) {
-              tag += '.0'; // fixme: breaks on 0.0-0...
+            var ver = match[2];
+            if (ver.split('.').length === 2) {
+              ver += '.0'; // fixme: breaks on 0.0-0...
             }
-
-            // rc is inverted to get correct shrinkwrap even if multiple tags
-            // reference the same commit (yep, people actually do this)
-
-            var hash = match[1];
-            (rc[hash] || (rc[hash] = [])).push(tag);
-            r.push({target: hash, version: tag});
+            rc[ver] = match[1];
+            // target: using ver instead of hash to get readbale bower output
+            r.push({target: ver, version: ver});
           }
         });
         if (!r.length) {
@@ -152,17 +149,14 @@ module.exports = function resolver(bower) {
         var hash = sw[endpoint.target];
         if (hash) {
           rc = {};
-          var v = rc[hash] = [];
-          Object.keys(sw)
-            .forEach(function (k) { sw[k] === hash && v.push(k); });
-          endpoint.target = sw[endpoint.target];
+          rc[endpoint.target] = hash;
         }
       }
       if (rc && rc[endpoint.target]) {
-        logFetch(endpoint, rc[endpoint.target].join(','));
-        rc[endpoint.target].forEach(function (v) {
-          lock[v] = endpoint.target;
-        });
+        var originalTarget = endpoint.target;
+        lock[endpoint.target] = rc[endpoint.target];
+        endpoint.target = rc[endpoint.target];
+        logFetch(endpoint, originalTarget);
         return _();
       } else {
         if (strictShrinkwrap) {
@@ -186,13 +180,14 @@ module.exports = function resolver(bower) {
             return r;
           })
           .then(function (branches) {
-            var target = branches[endpoint.target];
-            if (target) {
-              lock[endpoint.target] = target;
+            var hash = branches[endpoint.target];
+            if (hash) {
               var originalTarget = endpoint.target;
-              endpoint.target = target;
+              lock[endpoint.target] = hash;
+              endpoint.target = hash;
               logFetch(endpoint, originalTarget);
             } else {
+              // at point endpoint.target is most probably a hash
               logFetch(endpoint);
               lock[endpoint.target] = endpoint.target;
             }
