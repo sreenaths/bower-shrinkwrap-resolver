@@ -126,7 +126,7 @@ module.exports = function resolver(bower) {
     fetch: function (endpoint, cached) {
       var lock = updatedShrinkwrap[endpoint.source] ||
         (updatedShrinkwrap[endpoint.source] = {});
-      if (cached && cached.version) {
+      if (cached && cached.version && endpoint.target === cached.endpoint.target) {
         var lockedVersion = cached.version;
         var lockedHash = cached.endpoint.target;
         if (cached.resolution.commit) {
