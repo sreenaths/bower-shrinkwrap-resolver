@@ -1,18 +1,18 @@
 {
-  "name": "bower-shrinkwrap-resolver",
-  "description": "Missing shrinkwrap for Bower",
-  "version": "0.4.2",
-  "author": "Stanley Shyiko <stanley.shyiko@gmail.com>",
+  "name": "bower-shrinkwrap-resolver-ext",
+  "description": "A fork of shyiko/bower-shrinkwrap-resolver with some enhancements",
+  "version": "0.1.0",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/shyiko/bower-shrinkwrap-resolver"
+    "url": "https://github.com/sreenaths/bower-shrinkwrap-resolver-ext"
   },
   "main": "src/index.js",
   "dependencies": {
     "debuglog": "^1.0.1",
     "json-stable-stringify": "^1.0.1",
     "object-assign": "^4.0.1",
+    "semver": "^5.3.0",
     "string.prototype.endswith": "^0.2.0"
   },
   "devDependencies": {

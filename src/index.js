@@ -5,10 +5,11 @@ var assign = require('object-assign');
 var fs = require('fs');
 var path = require('path');
 var debuglog = require('debuglog');
+var semver = require('semver');
 
 require('string.prototype.endswith');
 
-var log = debuglog('bower-shrinkwrap-resolver');
+var log = debuglog('bower-shrinkwrap-resolver-ext');
 
 var argv = process.argv;
 
@@ -42,7 +43,7 @@ if (!noShrinkwrap && !resetShrinkwrap) {
 if (!strictShrinkwrap) {
   try {
     var rc = JSON.parse(fs.readFileSync(path.join(process.cwd(), '.bowerrc'),
-      'utf8'))['bower-shrinkwrap-resolver'];
+      'utf8'))['bower-shrinkwrap-resolver-ext'];
     strictShrinkwrap = rc && rc['strict-shrinkwrap'];
   } catch (e) {
     log('WARN: ' + e.message);
@@ -127,7 +128,7 @@ module.exports = function resolver(bower) {
       var lock = updatedShrinkwrap[endpoint.source] ||
         (updatedShrinkwrap[endpoint.source] = {});
       if (cached && cached.version &&
-          endpoint.target === cached.endpoint.target) {
+          semver.satisfies(endpoint.target, cached.endpoint.target)) {
         var lockedVersion = cached.version;
         var lockedHash = cached.endpoint.target;
         if (cached.resolution.commit) {
